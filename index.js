@@ -5,14 +5,14 @@ const cheerio = require('cheerio');
 // Télécharger une page HTML
 const getHtml = (url) => {
   return rp(url)
-  .then(function (htmlString) {
-    // console.log(htmlString);
-    return htmlString;
-  })
-  .catch(function (err) {
-    console.error("RP ERROR:", err)
-    return Promise.reject(err);
-  });
+    .then(function (htmlString) {
+      // console.log(htmlString);
+      return htmlString;
+    })
+    .catch(function (err) {
+      console.error("RP ERROR:", err)
+      return Promise.reject(err);
+    });
 }
 
 // Télécharger un pdf
@@ -33,6 +33,16 @@ const getPdf = (url) => {
 // Doc : https://www.npmjs.com/package/tika-server
 const ts = new TikaServer();
 
+// Créer une base de données
+const db = {}
+
+// Écrire dans la base de données
+
+db["code"] = {
+  a: 1,
+  b: 2
+}
+
 ts.on("debug", (msg) => {
   // console.log(`DEBUG: ${msg}`)
 })
@@ -40,9 +50,10 @@ ts.on("debug", (msg) => {
 // Lance le serveur tika
 ts.start().then(() => {
   // liste de mes urls de pdf
-  const listeUrlPdfs = [
-    'http://planete.insa-lyon.fr/scolpeda/f/ects?id=36736&_lang=fr'
-  ]
+  //  const listeUrlPdfs = [
+  //   'http://planete.insa-lyon.fr/scolpeda/f/ects?id=36736&_lang=fr'
+  // ]
+  const listeUrlPdfs = getUrls('https://www.insa-lyon.fr/fr/formation/parcours/729/4/1 ');
   // Pour chaque url ...
   return Promise.all(listeUrlPdfs.map((url) => {
     // Extraction du texte.
@@ -51,7 +62,7 @@ ts.start().then(() => {
       return ts.queryText(pdf).then((data) => {
         // console.log(data)
         let code = /CODE : ([^\n]*)/.exec(data)[1];
-        // console.log("Code :", code);
+        console.log("Code :", code);
       });
     })
   }))
@@ -64,23 +75,17 @@ ts.start().then(() => {
 // Analyser du html
 // DOc : https://github.com/cheeriojs/cheerio
 // ou encore : https://github.com/sfrenot/competence/blob/master/formation/crawl.coffee
-getHtml('https://www.insa-lyon.fr/fr/formation/parcours/729/4/1').then((html) => {
-  const $ = cheerio.load(html);
-  const urls = $('#block-system-main .content-offre-formations table a').map(function() {
-    return $(this).attr('href');
-  }).get()
-  // console.log("urls:", urls);
-})
-
-// Créer une base de données
-const db = {}
-
-// Écrire dans la base de données
-
-db["code"] = {
-  a: 1,
-  b: 2
+const getUrls = (url) => {
+  return getHtml(url).then((html) => {
+    const $ = cheerio.load(html);
+    const urls = $('#block-system-main .content-offre-formations table a').map(function () {
+      return $(this).attr('href');
+    }).get()
+    // console.log("urls:", urls);
+    return urls
+  })
 }
 
+
 // Afficher le contenu d'une variable en json
-console.log(JSON.stringify(db, null, 2));
+// console.log(JSON.stringify(db, null, 2));
